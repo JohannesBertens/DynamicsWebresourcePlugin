@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.Xrm.Tooling.Connector;
 using Microsoft.VisualStudio.Settings;
+using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell.Settings;
 using Microsoft.Xrm.Sdk.Organization;
 using Microsoft.Xrm.Sdk.Query;
@@ -17,9 +18,14 @@ namespace WebResourcePlugin
     internal sealed class ConnectToDynamics
     {
         /// <summary>
-        /// Command ID.
+        /// Connect command ID.
         /// </summary>
-        public const int CommandId = 0x0100;
+        public const int ConnectCommandId = 0x0100;
+
+        /// <summary>
+        /// Publish command ID.
+        /// </summary>
+        public const int PublishCommandId = 0x0102;
 
         /// <summary>
         /// Command menu group (command set GUID).
@@ -44,8 +50,12 @@ namespace WebResourcePlugin
             
             SettingsManager = new ShellSettingsManager(package);
 
-            var menuCommandId = new CommandID(CommandSet, CommandId);
-            var menuItem = new MenuCommand(this.Execute, menuCommandId);
+            var menuCommandId = new CommandID(CommandSet, ConnectCommandId);
+            var menuItem = new MenuCommand(this.ExecuteConnect, menuCommandId);
+            commandService.AddCommand(menuItem);
+
+            menuCommandId = new CommandID(CommandSet, PublishCommandId);
+            menuItem = new MenuCommand(this.ExecutePublish, menuCommandId);
             commandService.AddCommand(menuItem);
         }
 
@@ -180,12 +190,33 @@ namespace WebResourcePlugin
         /// </summary>
         /// <param name="sender">Event sender.</param>
         /// <param name="e">Event args.</param>
-        private void Execute(object sender, EventArgs e)
+        private void ExecuteConnect(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
             var connectWindow = new ConnectWindow();
             connectWindow.ShowDialog();
+        }
+
+        private void ExecutePublish(object sender, EventArgs e)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            if (!IsConnected)
+            {
+                ExecuteConnect(sender, e);
+            }
+            
+            if (IsConnected)
+            {
+                VsShellUtilities.ShowMessageBox(
+                    this.package,
+                    "Published",
+                    "PublishToDynamics",
+                    OLEMSGICON.OLEMSGICON_INFO,
+                    OLEMSGBUTTON.OLEMSGBUTTON_OK,
+                    OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
+            }
         }
     }
 }
