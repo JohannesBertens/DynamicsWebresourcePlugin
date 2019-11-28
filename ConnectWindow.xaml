@@ -1,0 +1,45 @@
+﻿<platformUi:DialogWindow x:Class="WebResourcePlugin.ConnectWindow"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:WebResourcePlugin"
+             xmlns:platformUi="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0"
+             mc:Ignorable="d" 
+             HasDialogFrame="False" Width="450" Height="260" Title="Connect to Dynamics 365" ResizeMode="NoResize">
+    <Grid Background="#f0f0f0" Width="420" Height="260">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="130" />
+            <ColumnDefinition Width="140" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="25" /> <!-- 0 -->
+            <RowDefinition Height="25" /> <!-- 1 -->
+            <RowDefinition Height="25" /> <!-- 2 -->
+            <RowDefinition Height="25" /> <!-- 3 -->
+            <RowDefinition Height="25" /> <!-- 4 -->
+            <RowDefinition Height="20" /> <!-- 5 -->
+            <RowDefinition Height="25" /> <!-- 6 -->
+            <RowDefinition Height="20" /> <!-- 7 -->
+            <RowDefinition Height="25" /> <!-- 8 -->
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Label IsTabStop="False" Grid.Row="0" Grid.Column="0">Dynamics CRM URL:</Label>
+        <TextBox IsTabStop="True" Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="DynamicsUrl"></TextBox>
+        <Label IsTabStop="False" Grid.Row="1" Grid.Column="0">Domain:</Label>
+        <TextBox IsTabStop="True" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" x:Name="DynamicsDomain"></TextBox>
+        <Label IsTabStop="False" Grid.Row="2" Grid.Column="0">User:</Label>
+        <TextBox IsTabStop="True" Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" x:Name="DynamicsUser"></TextBox>
+        <Label IsTabStop="False" Grid.Row="3" Grid.Column="0">Password:</Label>
+        <PasswordBox IsTabStop="True" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" x:Name="DynamicsPassword" KeyUp="OnConnectKey"></PasswordBox>
+        <Label IsTabStop="False" Grid.Row="4" Grid.Column="0">Save info:</Label>
+        <CheckBox IsTabStop="True" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" x:Name="SaveOnConnect"></CheckBox>
+        <Button IsTabStop="True" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" x:Name="ConnectButton" Click="OnConnect">Connect</Button>
+        <Label IsTabStop="False" Grid.Row="6" Grid.Column="0">Solution:</Label>
+        <ComboBox IsTabStop="True" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" x:Name="DynamicsSolutions" IsEnabled="False"></ComboBox>
+        <Button IsTabStop="True" Grid.Row="7" Grid.Column="1" x:Name="ButtonCancel" IsCancel="False" Click="OnCancel">Cancel</Button>
+        <Button IsTabStop="True" Grid.Row="7" Grid.Column="2" x:Name="ButtonOk" Click="OnOk" IsEnabled="False">Ok</Button>
+        <Label IsTabStop="False" Grid.Row="8" Grid.Column="0" Grid.ColumnSpan="3" x:Name="StatusLabel"></Label>
+    </Grid>
+</platformUi:DialogWindow>
