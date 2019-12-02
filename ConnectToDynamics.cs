@@ -1,14 +1,16 @@
 ﻿using System;
 using System.ComponentModel.Design;
+using System.IO;
 using System.Linq;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.Xrm.Tooling.Connector;
 using Microsoft.VisualStudio.Settings;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell.Settings;
-using Microsoft.Xrm.Sdk.Organization;
 using Microsoft.Xrm.Sdk.Query;
 using Task = System.Threading.Tasks.Task;
+using EnvDTE80;
+using EnvDTE;
 
 namespace WebResourcePlugin
 {
@@ -206,17 +208,51 @@ namespace WebResourcePlugin
             {
                 ExecuteConnect(sender, e);
             }
-            
+
             if (IsConnected)
             {
+                var projectItem = GetSelectedProjectItem();
+                if (projectItem == null)
+                {
+                    return;
+                }
+
+                // Save the item
+                projectItem.Document.Save();
+
+                // Read the content
+                var content = File.ReadAllText(projectItem.Document.FullName);
+
                 VsShellUtilities.ShowMessageBox(
                     this.package,
-                    "Published",
+                    content,
                     "PublishToDynamics",
                     OLEMSGICON.OLEMSGICON_INFO,
                     OLEMSGBUTTON.OLEMSGBUTTON_OK,
                     OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
             }
+        }
+
+        private ProjectItem GetSelectedProjectItem()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+
+            var applicationObjectTask = this.ServiceProvider.GetServiceAsync(typeof(SDTE));
+            var applicationObject = applicationObjectTask.Result as DTE2;
+            if (applicationObject == null)
+            {
+                return null;
+            }
+
+            var solutionExplorer = applicationObject.ToolWindows.SolutionExplorer;
+            var items = solutionExplorer.SelectedItems as EnvDTE.UIHierarchyItem[];
+            if (items == null || items.Length == 0)
+            {
+                return null;
+            }
+
+            var file = items.FirstOrDefault();
+            return file?.Object as ProjectItem;
         }
     }
 }
