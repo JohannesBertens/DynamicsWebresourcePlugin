@@ -97,6 +97,27 @@ namespace WebResourcePlugin
             return IsConnected;
         }
 
+        private Guid GetPublisher(string publisherName)
+        {
+            var queryPublisher = new QueryExpression("publisher");
+            queryPublisher.Criteria.AddCondition("friendlyname", ConditionOperator.Equal, publisherName);
+            var result = Service.RetrieveMultiple(queryPublisher);
+
+            if (result.Entities.Count != 1)
+            {
+                return default;
+            }
+
+            var publisher = result.Entities.FirstOrDefault();
+            if (publisher == null)
+            {
+                return default;
+            }
+
+            return publisher.Id;
+        }
+
+
         public string[] GetSolutions()
         {
             if (!IsConnected)
@@ -104,18 +125,19 @@ namespace WebResourcePlugin
                 return new string[0];
             }
 
+            var microsoftPublisherId = GetPublisher("MicrosoftCorporation");
+
             var queryGetSolutions = new QueryExpression
             {
                 EntityName = "solution",
-                ColumnSet = new ColumnSet("friendlyname"),
-                Criteria = new FilterExpression(),
+                ColumnSet = new ColumnSet(true)
             };
+            queryGetSolutions.Criteria.AddCondition("ismanaged", ConditionOperator.Equal, false);
+            queryGetSolutions.Criteria.AddCondition("isvisible", ConditionOperator.Equal, true);
+            queryGetSolutions.Criteria.AddCondition("publisherid", ConditionOperator.NotIn, microsoftPublisherId);
 
             var solutions = Service.RetrieveMultiple(queryGetSolutions);
-
-            // Filter to only show Edison solutions
-            var entities = solutions.Entities.Where(e => e.GetAttributeValue<string>("friendlyname").Contains("Edison"));
-            return entities.Select(e => e.GetAttributeValue<string>("friendlyname")).ToArray();
+            return solutions.Entities.Select(e => e.GetAttributeValue<string>("friendlyname")).ToArray();
         }
 
         private Guid GetGuidForSolution(string solution)
