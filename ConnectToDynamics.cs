@@ -11,6 +11,8 @@ using Microsoft.Xrm.Sdk.Query;
 using Task = System.Threading.Tasks.Task;
 using EnvDTE80;
 using EnvDTE;
+using Microsoft.Crm.Sdk.Messages;
+using Microsoft.VisualStudio.Threading;
 using Microsoft.Xrm.Sdk;
 
 namespace WebResourcePlugin
@@ -385,15 +387,15 @@ namespace WebResourcePlugin
             return results.Entities.SingleOrDefault(e => e.GetAttributeValue<string>("name").Contains(name));
         }
 
-        private bool PublishContentToDynamics(string content, string fullName)
+        private bool PublishContentToDynamics(string content, string fileName)
         {
-            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fullName);
+            var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
             var webResource = GetWebResourceFromSolution(fileNameWithoutExtension, SelectedSolution);
             if (webResource == null)
             {
                 VsShellUtilities.ShowMessageBox(
                     this.package,
-                    "Searched using ",
+                    $"Searched using {fileName}",
                     "Failed to find unique WebResource To Update",
                     OLEMSGICON.OLEMSGICON_CRITICAL,
                     OLEMSGBUTTON.OLEMSGBUTTON_OK,
@@ -409,6 +411,15 @@ namespace WebResourcePlugin
             
             // Save
             Service.Update(webResourceToUpdate);
+
+            // Publish
+            var webResourceXml = $"<importexportxml><webresources><webresource>{webResourceToUpdate.Id}</webresource></webresources></importexportxml>";
+            var publishXmlRequest = new PublishXmlRequest
+            {
+                ParameterXml = string.Format(webResourceXml)
+            };
+            Service.Execute(publishXmlRequest);
+
             return true;
         }
 
@@ -430,6 +441,7 @@ namespace WebResourcePlugin
             if (!projectItem.IsOpen)
             { 
                 projectItem.Open();
+                projectItem.Document.Activate();
             }
         }
 
@@ -438,15 +450,13 @@ namespace WebResourcePlugin
             ThreadHelper.ThrowIfNotOnUIThread();
 
             var applicationObjectTask = this.ServiceProvider.GetServiceAsync(typeof(SDTE));
-            var applicationObject = applicationObjectTask.Result as DTE2;
-            if (applicationObject == null)
+            if (!(applicationObjectTask.Result is DTE2 applicationObject))
             {
                 return null;
             }
 
             var solutionExplorer = applicationObject.ToolWindows.SolutionExplorer;
-            var items = solutionExplorer.SelectedItems as EnvDTE.UIHierarchyItem[];
-            if (items == null || items.Length == 0)
+            if (!(solutionExplorer.SelectedItems is UIHierarchyItem[] items) || items.Length == 0)
             {
                 return null;
             }
