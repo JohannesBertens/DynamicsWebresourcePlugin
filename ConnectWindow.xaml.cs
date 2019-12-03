@@ -72,14 +72,18 @@ namespace WebResourcePlugin
 
         public void OnOk(object sender, RoutedEventArgs e)
         {
+            var selectedSolution = (string) DynamicsSolutions.SelectedValue;
+
             var settings = ConnectToDynamics.Instance.ConnectionSettings;
             if (!string.IsNullOrEmpty((string)DynamicsSolutions.SelectedValue) 
                 && !DynamicsSolutions.SelectedValue.Equals(settings.Solution) 
                 && SaveOnConnect.IsChecked.HasValue && SaveOnConnect.IsChecked.Value)
             {
-                settings.Solution = (string)DynamicsSolutions.SelectedValue;
+                settings.Solution = selectedSolution;
                 ConnectToDynamics.Instance.ConnectionSettings = settings;
             }
+
+            ConnectToDynamics.Instance.SelectedSolution = selectedSolution;
 
             this.Hide();
         }

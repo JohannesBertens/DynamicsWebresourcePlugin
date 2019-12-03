@@ -74,6 +74,12 @@
           <ButtonText>Publish to Dynamics</ButtonText>
         </Strings>
       </Button>
+      <Button guid="guidWebResourcePluginPackageCmdSet" id="UpdateFromDynamicsId" priority="0x0100" type="Button">
+        <Parent guid="guidWebResourcePluginPackageCmdSet" id="FileMenuGroup" />
+        <Strings>
+          <ButtonText>Update from Dynamics</ButtonText>
+        </Strings>
+      </Button>
     </Buttons>
 
     <!--The bitmaps section is used to define the bitmaps that are used for the commands.-->
@@ -97,6 +103,7 @@
       <IDSymbol name="FileMenuGroup" value="0x1022" />
       <IDSymbol name="ConnectToDynamicsId" value="0x0100" />
       <IDSymbol name="PublishToDynamicsId" value="0x0102" />
+      <IDSymbol name="UpdateFromDynamicsId" value="0x0104" />
     </GuidSymbol>
 
     <GuidSymbol name="guidImages" value="{13ff3321-89ac-4d05-b185-b4924583e163}" >
