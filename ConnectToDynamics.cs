@@ -285,22 +285,28 @@ namespace WebResourcePlugin
             }
         }
 
-        private void ExecuteUpdate(object sender, EventArgs e)
+        private void WriteToOutput(string message)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
 
             var generalPane = GetGeneralPane();
+            generalPane.OutputString(message);
             generalPane.Activate();
+        }
 
-            generalPane.OutputString("Executing Update from Dynamics.");
+        private void ExecuteUpdate(object sender, EventArgs e)
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
 
-            generalPane.OutputString("Ensuring Connection." + Environment.NewLine);
+            WriteToOutput("Executing Update from Dynamics.");
+
+            WriteToOutput("Ensuring Connection." + Environment.NewLine);
             EnsureConnected();
             if (IsConnected)
             {
-                generalPane.OutputString("We are connected!" + Environment.NewLine);
+                WriteToOutput("We are connected!" + Environment.NewLine);
                 var fileName = GetSelectedFileName();
-                generalPane.OutputString($"File name to check: {fileName}." + Environment.NewLine);
+                WriteToOutput($"File name to check: {fileName}." + Environment.NewLine);
                 if (string.IsNullOrEmpty(fileName))
                 {
                     VsShellUtilities.ShowMessageBox(
@@ -314,7 +320,7 @@ namespace WebResourcePlugin
                 }
 
                 var content = UpdateFromDynamics(fileName);
-                generalPane.OutputString($"Got content from Dynamics, length: {content.Length}." + Environment.NewLine);
+                WriteToOutput($"Got content from Dynamics, length: {content.Length}." + Environment.NewLine);
                 if (string.IsNullOrEmpty(content))
                 {
                     VsShellUtilities.ShowMessageBox(
@@ -328,7 +334,7 @@ namespace WebResourcePlugin
                 }
 
                 File.WriteAllText(fileName, content);
-                generalPane.OutputString($"Wrote content to file, updating selected file." + Environment.NewLine);
+                WriteToOutput($"Wrote content to file, updating selected file." + Environment.NewLine);
                 RefreshSelectedFile();
             }
         }
@@ -397,6 +403,7 @@ namespace WebResourcePlugin
 
             var request = new QueryExpression("webresource") {ColumnSet = columnSet, NoLock = true};
             request.Criteria.AddCondition("webresourcetype", ConditionOperator.Equal, 3);
+            request.Criteria.AddCondition("name", ConditionOperator.Equal, name);
 
             var solutionGuid = GetGuidForSolution(solution);
             var solutionLink = new LinkEntity("webresource", "solutioncomponent", "webresourceid", "objectid", JoinOperator.Inner);
@@ -404,7 +411,16 @@ namespace WebResourcePlugin
             request.LinkEntities.Add(solutionLink);
 
             var results = Service.RetrieveMultiple(request);
-            return results.Entities.SingleOrDefault(e => e.GetAttributeValue<string>("name").Contains(name));
+            if (results.Entities.Count != 1)
+            {
+                WriteToOutput($"Got {results.Entities.Count} WebResource results:" + Environment.NewLine);
+                foreach (var result in results.Entities)
+                {
+                    WriteToOutput($" {result["name"]}" + Environment.NewLine);
+                }
+            }
+
+            return results.Entities.FirstOrDefault();
         }
 
         private bool PublishContentToDynamics(string content, string fileName)
@@ -454,25 +470,22 @@ namespace WebResourcePlugin
 
             if (projectItem.IsOpen)
             {
-                // Close the windows for this item
-                foreach (Window dteWindow in projectItem.DTE.Windows)
-                {
-                    var windowProjectItem = dteWindow.Object as ProjectItem;
-                    if (windowProjectItem?.FileNames[1] == projectItem.FileNames[1])
-                    {
-                        dteWindow.Close();
-                    }
-                }
-                
-                // If it has a Document, close it as well
+               // If it has a Document, close it
                 projectItem.Document?.Close(vsSaveChanges.vsSaveChangesNo);
             }
 
             // Re-open to show changes
             if (!projectItem.IsOpen)
-            { 
-                var window = projectItem.Open();
-                window.Activate();
+            {
+                try
+                {
+                    var window = projectItem.Open();
+                    window.Activate();
+                }
+                catch (Exception)
+                {
+                    // Cannot open it - FINE!
+                }
             }
         }
 
