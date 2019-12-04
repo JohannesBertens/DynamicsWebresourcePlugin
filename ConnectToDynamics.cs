@@ -279,6 +279,7 @@ namespace WebResourcePlugin
 
         private void EnsureConnected()
         {
+            WriteToOutput("Ensuring Connection." + Environment.NewLine);
             if (!IsConnected)
             {
                 Connect();
@@ -300,13 +301,12 @@ namespace WebResourcePlugin
 
             WriteToOutput("Executing Update from Dynamics.");
 
-            WriteToOutput("Ensuring Connection." + Environment.NewLine);
             EnsureConnected();
             if (IsConnected)
             {
                 WriteToOutput("We are connected!" + Environment.NewLine);
                 var fileName = GetSelectedFileName();
-                WriteToOutput($"File name to check: {fileName}." + Environment.NewLine);
+                WriteToOutput($"File to update: {fileName}." + Environment.NewLine);
                 if (string.IsNullOrEmpty(fileName))
                 {
                     VsShellUtilities.ShowMessageBox(
@@ -334,7 +334,7 @@ namespace WebResourcePlugin
                 }
 
                 File.WriteAllText(fileName, content);
-                WriteToOutput($"Wrote content to file, updating selected file." + Environment.NewLine);
+                WriteToOutput($"Wrote content to file." + Environment.NewLine);
                 RefreshSelectedFile();
             }
         }
@@ -342,11 +342,14 @@ namespace WebResourcePlugin
         private void ExecutePublish(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
+            WriteToOutput("Executing Publish to Dynamics.");
 
             EnsureConnected();
             if (IsConnected)
             {
+                WriteToOutput("We are connected!" + Environment.NewLine);
                 var fileName = GetSelectedFileName();
+                WriteToOutput($"File to publish: {fileName}." + Environment.NewLine);
                 if (string.IsNullOrEmpty(fileName))
                 {
                     VsShellUtilities.ShowMessageBox(
@@ -361,6 +364,7 @@ namespace WebResourcePlugin
 
                 // Read the content
                 var content = File.ReadAllText(fileName);
+                WriteToOutput($"Got content from disk, length: {content.Length}." + Environment.NewLine);
                 if (!PublishContentToDynamics(content, fileName))
                 {
                     VsShellUtilities.ShowMessageBox(
@@ -371,6 +375,7 @@ namespace WebResourcePlugin
                         OLEMSGBUTTON.OLEMSGBUTTON_OK,
                         OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
                 }
+                WriteToOutput($"Published content to Dynamics." + Environment.NewLine);
             }
         }
 
@@ -443,17 +448,16 @@ namespace WebResourcePlugin
 
             // Update content
             var webResourceToUpdate = new Entity("webresource");
-            webResourceToUpdate["webresourceid"] = webResource["webresourceid"];
+            webResourceToUpdate.Id = webResource.Id;
             webResourceToUpdate["content"] = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(content));
             
             // Save
             Service.Update(webResourceToUpdate);
 
             // Publish
-            var webResourceXml = $"<importexportxml><webresources><webresource>{webResourceToUpdate.Id}</webresource></webresources></importexportxml>";
             var publishXmlRequest = new PublishXmlRequest
             {
-                ParameterXml = string.Format(webResourceXml)
+                ParameterXml = $"<importexportxml><webresources><webresource>{webResourceToUpdate.Id}</webresource></webresources></importexportxml>"
             };
             Service.Execute(publishXmlRequest);
 
