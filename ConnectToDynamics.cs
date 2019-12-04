@@ -1,19 +1,21 @@
-﻿using System;
-using System.ComponentModel.Design;
-using System.IO;
-using System.Linq;
-using Microsoft.VisualStudio.Shell;
-using Microsoft.Xrm.Tooling.Connector;
+﻿using EnvDTE;
+using EnvDTE80;
+using Microsoft.Crm.Sdk.Messages;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Settings;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell.Settings;
-using Microsoft.Xrm.Sdk.Query;
-using Task = System.Threading.Tasks.Task;
-using EnvDTE80;
-using EnvDTE;
-using Microsoft.Crm.Sdk.Messages;
-using Microsoft.VisualStudio.Threading;
 using Microsoft.Xrm.Sdk;
+using Microsoft.Xrm.Sdk.Query;
+using Microsoft.Xrm.Tooling.Connector;
+using System;
+using System.ComponentModel.Design;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using Microsoft.VisualStudio.Threading;
+using Task = System.Threading.Tasks.Task;
 
 namespace WebResourcePlugin
 {
@@ -261,6 +263,14 @@ namespace WebResourcePlugin
             Connect();
         }
 
+        private IVsOutputWindowPane GetGeneralPane()
+        {
+            ThreadHelper.ThrowIfNotOnUIThread();
+            var output = (IVsOutputWindowPane)this.package.GetServiceAsync(typeof(SVsGeneralOutputWindowPane)).Result;
+
+            return output;
+        }
+
         private void Connect()
         {
             var connectWindow = new ConnectWindow();
@@ -278,11 +288,19 @@ namespace WebResourcePlugin
         private void ExecuteUpdate(object sender, EventArgs e)
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-            
+
+            var generalPane = GetGeneralPane();
+            generalPane.Activate();
+
+            generalPane.OutputString("Executing Update from Dynamics.");
+
+            generalPane.OutputString("Ensuring Connection." + Environment.NewLine);
             EnsureConnected();
             if (IsConnected)
             {
+                generalPane.OutputString("We are connected!" + Environment.NewLine);
                 var fileName = GetSelectedFileName();
+                generalPane.OutputString($"File name to check: {fileName}." + Environment.NewLine);
                 if (string.IsNullOrEmpty(fileName))
                 {
                     VsShellUtilities.ShowMessageBox(
@@ -296,6 +314,7 @@ namespace WebResourcePlugin
                 }
 
                 var content = UpdateFromDynamics(fileName);
+                generalPane.OutputString($"Got content from Dynamics, length: {content.Length}." + Environment.NewLine);
                 if (string.IsNullOrEmpty(content))
                 {
                     VsShellUtilities.ShowMessageBox(
@@ -309,6 +328,7 @@ namespace WebResourcePlugin
                 }
 
                 File.WriteAllText(fileName, content);
+                generalPane.OutputString($"Wrote content to file, updating selected file." + Environment.NewLine);
                 RefreshSelectedFile();
             }
         }
@@ -403,7 +423,6 @@ namespace WebResourcePlugin
                 return false;
             }
 
-
             // Update content
             var webResourceToUpdate = new Entity("webresource");
             webResourceToUpdate["webresourceid"] = webResource["webresourceid"];
@@ -426,7 +445,7 @@ namespace WebResourcePlugin
         private void RefreshSelectedFile()
         {
             ThreadHelper.ThrowIfNotOnUIThread();
-
+            
             var projectItem = GetSelectedProjectItem();
             if (projectItem == null)
             {
@@ -435,13 +454,25 @@ namespace WebResourcePlugin
 
             if (projectItem.IsOpen)
             {
-                projectItem.Document.Close(vsSaveChanges.vsSaveChangesNo);
+                // Close the windows for this item
+                foreach (Window dteWindow in projectItem.DTE.Windows)
+                {
+                    var windowProjectItem = dteWindow.Object as ProjectItem;
+                    if (windowProjectItem?.FileNames[1] == projectItem.FileNames[1])
+                    {
+                        dteWindow.Close();
+                    }
+                }
+                
+                // If it has a Document, close it as well
+                projectItem.Document?.Close(vsSaveChanges.vsSaveChangesNo);
             }
 
+            // Re-open to show changes
             if (!projectItem.IsOpen)
             { 
-                projectItem.Open();
-                projectItem.Document.Activate();
+                var window = projectItem.Open();
+                window.Activate();
             }
         }
 
@@ -470,22 +501,7 @@ namespace WebResourcePlugin
             ThreadHelper.ThrowIfNotOnUIThread();
 
             var projectItem = GetSelectedProjectItem();
-            if (projectItem == null)
-            {
-                return null;
-            }
-
-            if (!projectItem.IsOpen)
-            { 
-                projectItem.Open();
-            }
-                
-            if (projectItem.IsDirty)
-            {
-                projectItem.Document.Save();
-            }
-
-            return projectItem.Document?.FullName;
+            return projectItem?.FileNames[1];
         }
     }
 }
