@@ -330,7 +330,7 @@ namespace WebResourcePlugin
                         OLEMSGICON.OLEMSGICON_CRITICAL,
                         OLEMSGBUTTON.OLEMSGBUTTON_OK,
                         OLEMSGDEFBUTTON.OLEMSGDEFBUTTON_FIRST);
-
+                    return;
                 }
 
                 File.WriteAllText(fileName, content);
@@ -418,6 +418,8 @@ namespace WebResourcePlugin
                 {
                     WriteToOutput($" {result["name"]}" + Environment.NewLine);
                 }
+
+                return null;
             }
 
             return results.Entities.FirstOrDefault();
